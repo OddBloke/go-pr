@@ -10,7 +10,10 @@ import (
 )
 
 func AddElection(w http.ResponseWriter, r *http.Request) {
-	electionDatabase.Add(&Election{Name: "foo"})
+	err := electionDatabase.Add(Election{Name: "foo"})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+	}
 }
 
 func init() {
