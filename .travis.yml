@@ -1,1 +1,3 @@
 language: go
+before_script:
+ - go get gopkg.in/check.v1
