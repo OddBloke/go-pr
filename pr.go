@@ -48,8 +48,8 @@ func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
-	id_string := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(id_string)
+	idString := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idString)
 	if err == strconv.ErrSyntax {
 		http.Error(w, "Invalid ID", 400)
 		return
