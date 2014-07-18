@@ -41,7 +41,13 @@ func CreateApplication(dbmap *gorp.DbMap) Application {
 }
 
 func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
-	err := app.electionDatabase.Add(Election{Name: "foo"})
+	requestBytes := make([]byte, r.ContentLength)
+	n, err := r.Body.Read(requestBytes)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+	}
+	name := string(requestBytes[:n])
+	err = app.electionDatabase.Add(Election{Name: name})
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 	}

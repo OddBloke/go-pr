@@ -57,7 +57,7 @@ func (s *ElectionSuite) PerformRequest(method string, relativePath string, body 
 }
 
 func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
-	s.PerformRequest("POST", "/elections", "")
+	s.PerformRequest("POST", "/elections", "Test Election")
 
 	count, err := s.dbmap.SelectInt("select count(*) from elections")
 	checkErr(err, "Getting count failed")
@@ -65,14 +65,14 @@ func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
 }
 
 func (s *ElectionSuite) TestAddElectionCreatesElectionWithCorrectName(c *C) {
-	s.PerformRequest("POST", "/elections", "")
+	s.PerformRequest("POST", "/elections", "Test Election")
 
 	var createdElection Election
 	err := s.dbmap.SelectOne(&createdElection, "select * from elections")
 	if err != nil {
 		c.Error(err)
 	}
-	c.Assert(createdElection.Name, Matches, "foo")
+	c.Assert(createdElection.Name, Matches, "Test Election")
 }
 
 func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
