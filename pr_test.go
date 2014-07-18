@@ -73,3 +73,11 @@ func (s *ElectionSuite) TestAddElectionCreatesElectionWithCorrectName(c *C) {
 	}
 	c.Assert(createdElection.Name, Matches, "foo")
 }
+
+func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
+	election := Election{Name: "my test name"}
+	s.dbmap.Insert(&election)
+
+	recorder := s.PerformRequest("GET", fmt.Sprintf("/elections/%d", election.Id))
+	c.Assert(recorder.Body.String(), Matches, "my test name")
+}
