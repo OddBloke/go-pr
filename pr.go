@@ -9,15 +9,6 @@ import (
 	"github.com/stephens2424/muxchain/muxchainutil"
 )
 
-type Election struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-func (e *Election) String() string {
-	return e.Name
-}
-
 func AddElection(w http.ResponseWriter, r *http.Request) {
 	electionDatabase.Add(&Election{Name: "foo"})
 }
