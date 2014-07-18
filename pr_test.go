@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -43,17 +44,19 @@ func (s *ElectionSuite) TearDownSuite(c *C) {
 	s.dbmap.Db.Close()
 }
 
-func (s *ElectionSuite) PerformRequest() {
+func (s *ElectionSuite) PerformRequest(method string, relativePath string) *httptest.ResponseRecorder {
+	path := fmt.Sprintf("http://test.example.com%s", relativePath)
 	w := httptest.NewRecorder()
-	r, err := http.NewRequest("POST", "http://test.example.com/elections", nil)
+	r, err := http.NewRequest(method, path, nil)
 	checkErr(err, "Request creation failed")
 
 	testApp := CreateApplication(s.dbmap)
 	testApp.router.ServeHTTP(w, r)
+	return w
 }
 
 func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
-	s.PerformRequest()
+	s.PerformRequest("POST", "/elections")
 
 	count, err := s.dbmap.SelectInt("select count(*) from elections")
 	checkErr(err, "Getting count failed")
@@ -61,7 +64,7 @@ func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
 }
 
 func (s *ElectionSuite) TestAddElectionCreatesElectionWithCorrectName(c *C) {
-	s.PerformRequest()
+	s.PerformRequest("POST", "/elections")
 
 	var createdElection Election
 	err := s.dbmap.SelectOne(&createdElection, "select * from elections")
