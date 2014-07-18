@@ -93,3 +93,8 @@ func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
 	recorder := s.PerformRequest("GET", fmt.Sprintf("/elections/%d", election.Id), "")
 	c.Assert(recorder.Body.String(), Matches, "my test name")
 }
+
+func (s *ElectionSuite) TestGetElection404sForUnknownElection(c *C) {
+	recorder := s.PerformRequest("GET", "/elections/1", "")
+	c.Check(recorder.Code, Equals, 404)
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"io"
 	"log"
 	"net/http"
@@ -66,7 +67,14 @@ func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid ID", 400)
 		return
 	}
-	election := app.electionDatabase.Get(id)
+	election, err := app.electionDatabase.Get(id)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Not found", 404)
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
 	io.WriteString(w, election.String())
 }
 
