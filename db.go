@@ -11,7 +11,6 @@ import (
 
 func init() {
 	dbmap := initDb()
-	defer dbmap.Db.Close()
 
 	configureORM(dbmap)
 }
