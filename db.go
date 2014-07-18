@@ -9,12 +9,6 @@ import (
 	"github.com/coopernurse/gorp"
 )
 
-func init() {
-	dbmap := initDb()
-
-	configureORM(dbmap)
-}
-
 func initDb() *gorp.DbMap {
 	// connect to db using standard Go database/sql API
 	// use whatever database/sql driver you wish

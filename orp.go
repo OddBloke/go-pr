@@ -23,12 +23,3 @@ func (db GorpElectionDB) Get(id int) Election {
 	db.dbmap.SelectOne(&election, "SELECT * FROM elections WHERE id=?", id)
 	return election
 }
-
-func configureORM(dbmap *gorp.DbMap) {
-	dbmap.AddTableWithName(Election{}, "elections").SetKeys(true, "Id")
-
-	err := dbmap.CreateTablesIfNotExists()
-	checkErr(err, "Create tables failed")
-
-	electionDatabase = GorpElectionDB{dbmap}
-}
