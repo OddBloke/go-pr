@@ -75,6 +75,17 @@ func (s *ElectionSuite) TestAddElectionCreatesElectionWithCorrectName(c *C) {
 	c.Assert(createdElection.Name, Matches, "Test Election")
 }
 
+func (s *ElectionSuite) TestAddElectionRejectsZeroLengthName(c *C) {
+	recorder := s.PerformRequest("POST", "/elections", "")
+
+	c.Check(recorder.Code, Equals, 400)
+	c.Check(recorder.Body.String(), Matches, "Empty name forbidden.\n?")
+
+	count, err := s.dbmap.SelectInt("select count(*) from elections")
+	checkErr(err, "Getting count failed")
+	c.Check(count, Equals, int64(0))
+}
+
 func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
 	election := Election{Name: "my test name"}
 	s.dbmap.Insert(&election)

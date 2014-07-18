@@ -41,15 +41,21 @@ func CreateApplication(dbmap *gorp.DbMap) Application {
 }
 
 func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
+	if r.ContentLength == 0 {
+		http.Error(w, "Empty name forbidden.", 400)
+		return
+	}
 	requestBytes := make([]byte, r.ContentLength)
 	n, err := r.Body.Read(requestBytes)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
+		return
 	}
 	name := string(requestBytes[:n])
 	err = app.electionDatabase.Add(Election{Name: name})
 	if err != nil {
 		http.Error(w, err.Error(), 500)
+		return
 	}
 }
 
