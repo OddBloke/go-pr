@@ -43,16 +43,30 @@ func (s *ElectionSuite) TearDownSuite(c *C) {
 	s.dbmap.Db.Close()
 }
 
-func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
+func (s *ElectionSuite) PerformRequest() {
 	w := httptest.NewRecorder()
 	r, err := http.NewRequest("POST", "http://test.example.com/elections", nil)
 	checkErr(err, "Request creation failed")
 
 	testApp := CreateApplication(s.dbmap)
 	testApp.router.ServeHTTP(w, r)
+}
+
+func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
+	s.PerformRequest()
 
 	count, err := s.dbmap.SelectInt("select count(*) from elections")
 	checkErr(err, "Getting count failed")
-
 	c.Assert(count, Equals, int64(1))
+}
+
+func (s *ElectionSuite) TestAddElectionCreatesElectionWithCorrectName(c *C) {
+	s.PerformRequest()
+
+	var createdElection Election
+	err := s.dbmap.SelectOne(&createdElection, "select * from elections")
+	if err != nil {
+		c.Error(err)
+	}
+	c.Assert(createdElection.Name, Matches, "foo")
 }
