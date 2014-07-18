@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/coopernurse/gorp"
@@ -44,10 +45,10 @@ func (s *ElectionSuite) TearDownSuite(c *C) {
 	s.dbmap.Db.Close()
 }
 
-func (s *ElectionSuite) PerformRequest(method string, relativePath string) *httptest.ResponseRecorder {
+func (s *ElectionSuite) PerformRequest(method string, relativePath string, body string) *httptest.ResponseRecorder {
 	path := fmt.Sprintf("http://test.example.com%s", relativePath)
 	w := httptest.NewRecorder()
-	r, err := http.NewRequest(method, path, nil)
+	r, err := http.NewRequest(method, path, strings.NewReader(body))
 	checkErr(err, "Request creation failed")
 
 	testApp := CreateApplication(s.dbmap)
@@ -56,7 +57,7 @@ func (s *ElectionSuite) PerformRequest(method string, relativePath string) *http
 }
 
 func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
-	s.PerformRequest("POST", "/elections")
+	s.PerformRequest("POST", "/elections", "")
 
 	count, err := s.dbmap.SelectInt("select count(*) from elections")
 	checkErr(err, "Getting count failed")
@@ -64,7 +65,7 @@ func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
 }
 
 func (s *ElectionSuite) TestAddElectionCreatesElectionWithCorrectName(c *C) {
-	s.PerformRequest("POST", "/elections")
+	s.PerformRequest("POST", "/elections", "")
 
 	var createdElection Election
 	err := s.dbmap.SelectOne(&createdElection, "select * from elections")
@@ -78,6 +79,6 @@ func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
 	election := Election{Name: "my test name"}
 	s.dbmap.Insert(&election)
 
-	recorder := s.PerformRequest("GET", fmt.Sprintf("/elections/%d", election.Id))
+	recorder := s.PerformRequest("GET", fmt.Sprintf("/elections/%d", election.Id), "")
 	c.Assert(recorder.Body.String(), Matches, "my test name")
 }
