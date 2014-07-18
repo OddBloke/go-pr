@@ -86,6 +86,18 @@ func (s *ElectionSuite) TestAddElectionRejectsZeroLengthName(c *C) {
 	c.Check(count, Equals, int64(0))
 }
 
+func (s *ElectionSuite) TestAddElectionRejectsDuplicateNames(c *C) {
+	s.PerformRequest("POST", "/elections", "Duplicate")
+	recorder := s.PerformRequest("POST", "/elections", "Duplicate")
+
+	c.Check(recorder.Code, Equals, 400)
+	c.Check(recorder.Body.String(), Matches, "Name taken.\n?")
+
+	count, err := s.dbmap.SelectInt("select count(*) from elections")
+	checkErr(err, "Getting count failed")
+	c.Check(count, Equals, int64(1))
+}
+
 func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
 	election := Election{Name: "my test name"}
 	s.dbmap.Insert(&election)

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/coopernurse/gorp"
 	"github.com/gorilla/mux"
@@ -19,7 +20,7 @@ type Application struct {
 }
 
 func (app *Application) configureORM(dbmap *gorp.DbMap) {
-	dbmap.AddTableWithName(Election{}, "elections").SetKeys(true, "Id")
+	dbmap.AddTableWithName(Election{}, "elections").SetKeys(true, "Id").ColMap("Name").SetUnique(true)
 
 	err := dbmap.CreateTablesIfNotExists()
 	checkErr(err, "Create tables failed")
@@ -55,6 +56,10 @@ func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
 	name := string(requestBytes[:n])
 	err = app.electionDatabase.Add(Election{Name: name})
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			http.Error(w, "Name taken.", 400)
+			return
+		}
 		http.Error(w, err.Error(), 500)
 		return
 	}
