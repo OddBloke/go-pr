@@ -29,7 +29,8 @@ func init() {
 }
 
 func main() {
-	if err := http.ListenAndServe(":8123", muxchain.Default); err != nil {
+	err := http.ListenAndServe(":8123", muxchain.Default)
+	if err != nil {
 		log.Fatal(err)
 	}
 }
