@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -82,7 +81,12 @@ func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	io.WriteString(w, election.String())
+	output, err := json.Marshal(election)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Write(output)
 }
 
 func init() {

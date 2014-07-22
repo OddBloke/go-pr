@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -103,7 +104,9 @@ func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
 	s.dbmap.Insert(&election)
 
 	recorder := s.PerformRequest("GET", fmt.Sprintf("/elections/%d", election.Id), "")
-	c.Assert(recorder.Body.String(), Matches, "my test name")
+	returnedElection := Election{}
+	json.Unmarshal(recorder.Body.Bytes(), &returnedElection)
+	c.Assert(returnedElection.Name, Matches, "my test name")
 }
 
 func (s *ElectionSuite) TestGetElection404sForUnknownElection(c *C) {
