@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -43,18 +44,19 @@ func CreateApplication(dbmap *gorp.DbMap) Application {
 }
 
 func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
-	if r.ContentLength == 0 {
-		http.Error(w, "Empty name forbidden.", 400)
-		return
-	}
 	requestBytes := make([]byte, r.ContentLength)
-	n, err := r.Body.Read(requestBytes)
+	_, err := r.Body.Read(requestBytes)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	name := string(requestBytes[:n])
-	err = app.electionDatabase.Add(Election{Name: name})
+	election := Election{}
+	json.Unmarshal(requestBytes, &election)
+	if len(election.Name) == 0 {
+		http.Error(w, "Empty name forbidden.", 400)
+		return
+	}
+	err = app.electionDatabase.Add(election)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			http.Error(w, "Name taken.", 400)

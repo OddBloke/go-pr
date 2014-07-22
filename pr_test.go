@@ -57,7 +57,7 @@ func (s *ElectionSuite) PerformRequest(method string, relativePath string, body 
 }
 
 func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
-	s.PerformRequest("POST", "/elections", "Test Election")
+	s.PerformRequest("POST", "/elections", `{"name": "Test Election"}`)
 
 	count, err := s.dbmap.SelectInt("select count(*) from elections")
 	checkErr(err, "Getting count failed")
@@ -65,7 +65,7 @@ func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
 }
 
 func (s *ElectionSuite) TestAddElectionCreatesElectionWithCorrectName(c *C) {
-	s.PerformRequest("POST", "/elections", "Test Election")
+	s.PerformRequest("POST", "/elections", `{"name": "Test Election"}`)
 
 	var createdElection Election
 	err := s.dbmap.SelectOne(&createdElection, "select * from elections")
@@ -76,7 +76,7 @@ func (s *ElectionSuite) TestAddElectionCreatesElectionWithCorrectName(c *C) {
 }
 
 func (s *ElectionSuite) TestAddElectionRejectsZeroLengthName(c *C) {
-	recorder := s.PerformRequest("POST", "/elections", "")
+	recorder := s.PerformRequest("POST", "/elections", `{"name": ""}`)
 
 	c.Check(recorder.Code, Equals, 400)
 	c.Check(recorder.Body.String(), Matches, "Empty name forbidden.\n?")
@@ -87,8 +87,8 @@ func (s *ElectionSuite) TestAddElectionRejectsZeroLengthName(c *C) {
 }
 
 func (s *ElectionSuite) TestAddElectionRejectsDuplicateNames(c *C) {
-	s.PerformRequest("POST", "/elections", "Duplicate")
-	recorder := s.PerformRequest("POST", "/elections", "Duplicate")
+	s.PerformRequest("POST", "/elections", `{"name": "Duplicate"}`)
+	recorder := s.PerformRequest("POST", "/elections", `{"name": "Duplicate"}`)
 
 	c.Check(recorder.Code, Equals, 400)
 	c.Check(recorder.Body.String(), Matches, "Name taken.\n?")
