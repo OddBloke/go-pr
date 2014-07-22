@@ -113,3 +113,10 @@ func (s *ElectionSuite) TestGetElection404sForUnknownElection(c *C) {
 	recorder := s.PerformRequest("GET", "/elections/1", "")
 	c.Check(recorder.Code, Equals, 404)
 }
+
+func (s *ElectionSuite) TestListElectionsReturnsEmptyList(c *C) {
+	recorder := s.PerformRequest("GET", "/elections", "")
+	c.Check(recorder.Code, Equals, 200)
+
+	c.Check(recorder.Body.String(), Equals, "[]")
+}

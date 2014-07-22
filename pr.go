@@ -30,6 +30,7 @@ func (app *Application) configureORM(dbmap *gorp.DbMap) {
 
 func (app *Application) configureRouting() {
 	router := mux.NewRouter()
+	router.HandleFunc("/elections", app.ListElections).Methods("GET")
 	router.HandleFunc("/elections", app.AddElection).Methods("POST")
 	router.HandleFunc("/elections/{id}", app.GetElection).Methods("GET")
 	app.router = router
@@ -87,6 +88,10 @@ func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write(output)
+}
+
+func (app Application) ListElections(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("[]"))
 }
 
 func init() {
