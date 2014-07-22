@@ -3,8 +3,9 @@ package main
 import "github.com/coopernurse/gorp"
 
 type ElectionDB interface {
-	Get(id int) (Election, error)
 	Add(e Election) error
+	Get(id int) (Election, error)
+	List() ([]Election, error)
 }
 
 var electionDatabase ElectionDB
@@ -22,4 +23,10 @@ func (db GorpElectionDB) Get(id int) (Election, error) {
 	var election Election
 	err := db.dbmap.SelectOne(&election, "SELECT * FROM elections WHERE id=?", id)
 	return election, err
+}
+
+func (db GorpElectionDB) List() ([]Election, error) {
+	var elections []Election
+	_, err := db.dbmap.Select(&elections, "SELECT * FROM elections")
+	return elections, err
 }

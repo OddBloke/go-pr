@@ -91,7 +91,17 @@ func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app Application) ListElections(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("[]"))
+	elections, err := app.electionDatabase.List()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	output, err := json.Marshal(elections)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Write(output)
 }
 
 func init() {

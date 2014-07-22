@@ -120,3 +120,36 @@ func (s *ElectionSuite) TestListElectionsReturnsEmptyList(c *C) {
 
 	c.Check(recorder.Body.String(), Equals, "[]")
 }
+
+func (s *ElectionSuite) TestListElectionsReturnsListOfCorrectLength(c *C) {
+	election := Election{Name: "my test name"}
+	other_election := Election{Name: "my other name"}
+	third_election := Election{Name: "my third name"}
+	s.dbmap.Insert(&election, &other_election, &third_election)
+
+	recorder := s.PerformRequest("GET", "/elections", "")
+
+	var electionList []Election
+	json.Unmarshal(recorder.Body.Bytes(), &electionList)
+	c.Check(len(electionList), Equals, 3)
+}
+
+func (s *ElectionSuite) TestListElectionReturnsExistingElections(c *C) {
+	election := Election{Name: "my test name"}
+	other_election := Election{Name: "my other name"}
+	s.dbmap.Insert(&election, &other_election)
+
+	recorder := s.PerformRequest("GET", "/elections", "")
+
+	expectedElectionNames := map[string]int{
+		"my test name":  0,
+		"my other name": 0,
+	}
+	var electionList []Election
+	json.Unmarshal(recorder.Body.Bytes(), &electionList)
+	actualElectionNames := make(map[string]int)
+	for _, election := range electionList {
+		actualElectionNames[election.Name] = 0
+	}
+	c.Check(actualElectionNames, DeepEquals, expectedElectionNames)
+}
