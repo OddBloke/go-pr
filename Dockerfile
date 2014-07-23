@@ -2,7 +2,7 @@ FROM ubuntu:latest
 MAINTAINER Daniel Watkins <daniel@daniel-watkins.co.uk>
 
 RUN apt-get update
-RUN apt-get install -y golang git
+RUN apt-get install -y golang git gcc
 
 ENV GOPATH /go
 RUN go get github.com/OddBloke/go-pr
