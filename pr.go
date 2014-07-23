@@ -14,6 +14,14 @@ import (
 	"github.com/stephens2424/muxchain/muxchainutil"
 )
 
+func handleUnexpectedError(err error, w http.ResponseWriter) bool {
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return true
+	}
+	return false
+}
+
 type Application struct {
 	electionDatabase ElectionDB
 	router           *mux.Router
@@ -46,8 +54,7 @@ func CreateApplication(dbmap *gorp.DbMap) Application {
 func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
 	requestBytes := make([]byte, r.ContentLength)
 	_, err := r.Body.Read(requestBytes)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
+	if handleUnexpectedError(err, w) {
 		return
 	}
 	election := Election{}
@@ -62,7 +69,7 @@ func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Name taken.", 400)
 			return
 		}
-		http.Error(w, err.Error(), 500)
+		handleUnexpectedError(err, w)
 		return
 	}
 }
@@ -78,13 +85,11 @@ func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
 	if err == sql.ErrNoRows {
 		http.Error(w, "Not found", 404)
 		return
-	} else if err != nil {
-		http.Error(w, err.Error(), 500)
+	} else if handleUnexpectedError(err, w) {
 		return
 	}
 	output, err := json.Marshal(election)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
+	if handleUnexpectedError(err, w) {
 		return
 	}
 	w.Write(output)
@@ -92,13 +97,11 @@ func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
 
 func (app Application) ListElections(w http.ResponseWriter, r *http.Request) {
 	elections, err := app.electionDatabase.List()
-	if err != nil {
-		http.Error(w, err.Error(), 500)
+	if handleUnexpectedError(err, w) {
 		return
 	}
 	output, err := json.Marshal(elections)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
+	if handleUnexpectedError(err, w) {
 		return
 	}
 	w.Write(output)
