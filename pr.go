@@ -29,8 +29,8 @@ func handleUnexpectedError(err error, w http.ResponseWriter) bool {
 }
 
 type Application struct {
-	electionDatabase ElectionDB
-	handler          http.Handler
+	database DB
+	handler  http.Handler
 }
 
 func (app *Application) configureORM(dbmap *gorp.DbMap) {
@@ -41,7 +41,7 @@ func (app *Application) configureORM(dbmap *gorp.DbMap) {
 	checkErr(err, "Create tables failed")
 	log.Info("Tables successfully created.")
 
-	app.electionDatabase = GorpElectionDB{dbmap}
+	app.database = GorpDB{dbmap}
 	log.Info("ORM configured.")
 }
 
@@ -75,7 +75,7 @@ func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Empty name forbidden.", 400)
 		return
 	}
-	err = app.electionDatabase.Add(election)
+	err = app.database.AddElection(election)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			http.Error(w, "Name taken.", 400)
@@ -105,7 +105,7 @@ func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	election, err := app.electionDatabase.Get(id)
+	election, err := app.database.GetElection(id)
 	if err == sql.ErrNoRows {
 		http.Error(w, "Not found", 404)
 		return
@@ -120,7 +120,7 @@ func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app Application) ListElections(w http.ResponseWriter, r *http.Request) {
-	elections, err := app.electionDatabase.List()
+	elections, err := app.database.ListElections()
 	if handleUnexpectedError(err, w) {
 		return
 	}
@@ -136,7 +136,7 @@ func (app Application) AddCandidate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	_, err = app.electionDatabase.Get(id)
+	_, err = app.database.GetElection(id)
 	if err == sql.ErrNoRows {
 		http.Error(w, "Not found", 404)
 		return
