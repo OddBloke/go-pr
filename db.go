@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"log"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -10,22 +10,23 @@ import (
 )
 
 func initDb() *gorp.DbMap {
-	log.Print("Initialising database...")
+	log.Info("Initialising database...")
 	// connect to db using standard Go database/sql API
 	// use whatever database/sql driver you wish
 	db, err := sql.Open("sqlite3", "/tmp/pr_db.sqlite3")
 	checkErr(err, "sql.Open failed")
-	log.Print("Database successfully opened.")
+	log.Info("Database successfully opened.")
 
 	// construct a gorp DbMap
 	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
-	log.Print("dbmap constructed.")
+	log.Info("dbmap constructed.")
 
 	return dbmap
 }
 
 func checkErr(err error, msg string) {
 	if err != nil {
-		log.Fatalln(msg, err)
+		log.Fatal("%s: %s", msg, err.Error())
+		os.Exit(1)
 	}
 }

@@ -3,8 +3,8 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -12,7 +12,10 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/stephens2424/muxchain"
 	"github.com/stephens2424/muxchain/muxchainutil"
+	"github.com/jcelliott/lumber"
 )
+
+var log lumber.Logger
 
 func handleUnexpectedError(err error, w http.ResponseWriter) bool {
 	if err != nil {
@@ -28,33 +31,33 @@ type Application struct {
 }
 
 func (app *Application) configureORM(dbmap *gorp.DbMap) {
-	log.Print("Configuring ORM...")
+	log.Info("Configuring ORM...")
 	dbmap.AddTableWithName(Election{}, "elections").SetKeys(true, "Id").ColMap("Name").SetUnique(true)
 
 	err := dbmap.CreateTablesIfNotExists()
 	checkErr(err, "Create tables failed")
-	log.Print("Tables successfully created.")
+	log.Info("Tables successfully created.")
 
 	app.electionDatabase = GorpElectionDB{dbmap}
-	log.Print("ORM configured.")
+	log.Info("ORM configured.")
 }
 
 func (app *Application) configureRouting() {
-	log.Print("Configuring routing...")
+	log.Info("Configuring routing...")
 	router := mux.NewRouter()
 	router.HandleFunc("/elections", app.ListElections).Methods("GET")
 	router.HandleFunc("/elections", app.AddElection).Methods("POST")
 	router.HandleFunc("/elections/{id}", app.GetElection).Methods("GET")
 	app.router = router
-	log.Print("Routing configured.")
+	log.Info("Routing configured.")
 }
 
 func CreateApplication(dbmap *gorp.DbMap) Application {
-	log.Print("Creating application...")
+	log.Info("Creating application...")
 	app := Application{}
 	app.configureORM(dbmap)
 	app.configureRouting()
-	log.Print("Application created.")
+	log.Info("Application created.")
 	return app
 }
 
@@ -115,17 +118,19 @@ func (app Application) ListElections(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {
-	log.Print("Starting up...")
+	log = lumber.NewConsoleLogger(lumber.INFO)
+	log.Info("Starting up...")
 	dbmap := initDb()
 	application := CreateApplication(dbmap)
 	muxchain.Chain("/", muxchainutil.DefaultLog, application.router)
 }
 
 func main() {
-	log.Print("Listening and serving on port 8123...")
+	log.Info("Listening and serving on port 8123...")
 	err := http.ListenAndServe(":8123", muxchain.Default)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
+		os.Exit(1)
 	}
-	log.Print("Exiting...")
+	log.Warn("Exiting...")
 }
