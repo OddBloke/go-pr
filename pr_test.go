@@ -27,6 +27,7 @@ func Test(t *testing.T) { TestingT(t) }
 
 type PRSuite struct {
 	dbmap *gorp.DbMap
+	app   Application
 }
 
 func (s *PRSuite) SetUpSuite(c *C) {
@@ -38,6 +39,7 @@ func (s *PRSuite) SetUpTest(c *C) {
 	if err != nil {
 		c.Error(err)
 	}
+	s.app = CreateApplication(s.dbmap)
 }
 
 func (s *PRSuite) TearDownSuite(c *C) {
@@ -50,8 +52,7 @@ func (s *PRSuite) PerformRequest(method string, relativePath string, body string
 	r, err := http.NewRequest(method, path, strings.NewReader(body))
 	checkErr(err, "Request creation failed")
 
-	testApp := CreateApplication(s.dbmap)
-	testApp.handler.ServeHTTP(w, r)
+	s.app.handler.ServeHTTP(w, r)
 	return w
 }
 
@@ -180,7 +181,19 @@ type CandidatesSuite struct {
 
 var _ = Suite(&CandidatesSuite{})
 
+func (s *CandidatesSuite) TestAddCandidateReturns404ForMissingElection(c *C) {
+	recorder := s.PerformRequest("POST", "/elections/1/candidates", `{"name": "Test Candidate"}`)
+
+	c.Check(recorder.Code, Equals, 404)
+}
+
 func (s *CandidatesSuite) TestAddCandidateReturns201(c *C) {
+	election := Election{Name: "my test name"}
+	err := s.dbmap.Insert(&election)
+	if err != nil {
+		c.Error(err)
+	}
+
 	recorder := s.PerformRequest("POST", "/elections/1/candidates", `{"name": "Test Candidate"}`)
 
 	c.Check(recorder.Code, Equals, 201)

@@ -87,11 +87,22 @@ func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(201)
 }
 
-func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
-	idString := mux.Vars(r)["id"]
+func getIntURLParameter(w http.ResponseWriter, r *http.Request, parameterName string) (int, error) {
+	idString := mux.Vars(r)[parameterName]
 	id, err := strconv.Atoi(idString)
-	if err == strconv.ErrSyntax {
+	if err == nil {
+		return id, nil
+	} else if err == strconv.ErrSyntax {
 		http.Error(w, "Invalid ID", 400)
+	} else {
+		handleUnexpectedError(err, w)
+	}
+	return -1, err
+}
+
+func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {
+	id, err := getIntURLParameter(w, r, "id")
+	if err != nil {
 		return
 	}
 	election, err := app.electionDatabase.Get(id)
@@ -121,6 +132,15 @@ func (app Application) ListElections(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app Application) AddCandidate(w http.ResponseWriter, r *http.Request) {
+	id, err := getIntURLParameter(w, r, "election_id")
+	if err != nil {
+		return
+	}
+	_, err = app.electionDatabase.Get(id)
+	if err == sql.ErrNoRows {
+		http.Error(w, "Not found", 404)
+		return
+	}
 	w.WriteHeader(201)
 }
 
