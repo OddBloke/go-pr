@@ -83,6 +83,7 @@ func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
 		handleUnexpectedError(err, w)
 		return
 	}
+	w.WriteHeader(201)
 }
 
 func (app Application) GetElection(w http.ResponseWriter, r *http.Request) {

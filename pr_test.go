@@ -57,6 +57,12 @@ func (s *ElectionSuite) PerformRequest(method string, relativePath string, body 
 	return w
 }
 
+func (s *ElectionSuite) TestAddElectionReturns201(c *C) {
+	recorder := s.PerformRequest("POST", "/elections", `{"name": "Test Election"}`)
+
+	c.Check(recorder.Code, Equals, 201)
+}
+
 func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
 	s.PerformRequest("POST", "/elections", `{"name": "Test Election"}`)
 
@@ -99,6 +105,15 @@ func (s *ElectionSuite) TestAddElectionRejectsDuplicateNames(c *C) {
 	c.Check(count, Equals, int64(1))
 }
 
+func (s *ElectionSuite) TestGetElectionReturns200(c *C) {
+	election := Election{Name: "my test name"}
+	s.dbmap.Insert(&election)
+
+	recorder := s.PerformRequest("GET", fmt.Sprintf("/elections/%d", election.Id), "")
+
+	c.Check(recorder.Code, Equals, 200)
+}
+
 func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
 	election := Election{Name: "my test name"}
 	s.dbmap.Insert(&election)
@@ -111,13 +126,14 @@ func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
 
 func (s *ElectionSuite) TestGetElection404sForUnknownElection(c *C) {
 	recorder := s.PerformRequest("GET", "/elections/1", "")
+
 	c.Check(recorder.Code, Equals, 404)
 }
 
 func (s *ElectionSuite) TestListElectionsReturnsEmptyList(c *C) {
 	recorder := s.PerformRequest("GET", "/elections", "")
-	c.Check(recorder.Code, Equals, 200)
 
+	c.Check(recorder.Code, Equals, 200)
 	c.Check(recorder.Body.String(), Equals, "[]")
 }
 
