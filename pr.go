@@ -76,7 +76,7 @@ func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Empty name forbidden.", 400)
 		return
 	}
-	err = app.database.AddElection(election)
+	err = app.database.Add(&election)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			http.Error(w, "Name taken.", 400)
@@ -148,7 +148,7 @@ func (app Application) AddCandidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	candidate.ElectionId = election.Id
-	err = app.database.AddCandidate(candidate)
+	err = app.database.Add(&candidate)
 	w.WriteHeader(201)
 }
 

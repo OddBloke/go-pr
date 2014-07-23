@@ -3,11 +3,10 @@ package main
 import "github.com/coopernurse/gorp"
 
 type DB interface {
-	AddElection(e Election) error
+	Add(v interface{}) error
+
 	GetElection(id int) (Election, error)
 	ListElections() ([]Election, error)
-
-	AddCandidate(c Candidate) error
 }
 
 var electionDatabase DB
@@ -16,8 +15,8 @@ type GorpDB struct {
 	dbmap *gorp.DbMap
 }
 
-func (db GorpDB) AddElection(e Election) error {
-	err := db.dbmap.Insert(&e)
+func (db GorpDB) Add(v interface{}) error {
+	err := db.dbmap.Insert(v)
 	return err
 }
 
@@ -31,9 +30,4 @@ func (db GorpDB) ListElections() ([]Election, error) {
 	var elections []Election
 	_, err := db.dbmap.Select(&elections, "SELECT * FROM elections")
 	return elections, err
-}
-
-func (db GorpDB) AddCandidate(c Candidate) error {
-	err := db.dbmap.Insert(&c)
-	return err
 }
