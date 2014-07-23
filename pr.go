@@ -65,13 +65,11 @@ func CreateApplication(dbmap *gorp.DbMap) Application {
 }
 
 func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
-	requestBytes := make([]byte, r.ContentLength)
-	_, err := r.Body.Read(requestBytes)
+	election := Election{}
+	err := json.NewDecoder(r.Body).Decode(&election)
 	if handleUnexpectedError(err, w) {
 		return
 	}
-	election := Election{}
-	json.Unmarshal(requestBytes, &election)
 	if len(election.Name) == 0 {
 		http.Error(w, "Empty name forbidden.", 400)
 		return
