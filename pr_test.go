@@ -25,28 +25,26 @@ func createTestDatabase() *gorp.DbMap {
 
 func Test(t *testing.T) { TestingT(t) }
 
-type ElectionSuite struct {
+type PRSuite struct {
 	dbmap *gorp.DbMap
 }
 
-var _ = Suite(&ElectionSuite{})
-
-func (s *ElectionSuite) SetUpSuite(c *C) {
+func (s *PRSuite) SetUpSuite(c *C) {
 	s.dbmap = createTestDatabase()
 }
 
-func (s *ElectionSuite) SetUpTest(c *C) {
+func (s *PRSuite) SetUpTest(c *C) {
 	err := s.dbmap.TruncateTables()
 	if err != nil {
 		c.Error(err)
 	}
 }
 
-func (s *ElectionSuite) TearDownSuite(c *C) {
+func (s *PRSuite) TearDownSuite(c *C) {
 	s.dbmap.Db.Close()
 }
 
-func (s *ElectionSuite) PerformRequest(method string, relativePath string, body string) *httptest.ResponseRecorder {
+func (s *PRSuite) PerformRequest(method string, relativePath string, body string) *httptest.ResponseRecorder {
 	path := fmt.Sprintf("http://test.example.com%s", relativePath)
 	w := httptest.NewRecorder()
 	r, err := http.NewRequest(method, path, strings.NewReader(body))
@@ -56,6 +54,12 @@ func (s *ElectionSuite) PerformRequest(method string, relativePath string, body 
 	testApp.handler.ServeHTTP(w, r)
 	return w
 }
+
+type ElectionSuite struct {
+	PRSuite
+}
+
+var _ = Suite(&ElectionSuite{})
 
 func (s *ElectionSuite) TestAddElectionReturns201(c *C) {
 	recorder := s.PerformRequest("POST", "/elections", `{"name": "Test Election"}`)
@@ -168,4 +172,16 @@ func (s *ElectionSuite) TestListElectionReturnsExistingElections(c *C) {
 		actualElectionNames[election.Name] = 0
 	}
 	c.Check(actualElectionNames, DeepEquals, expectedElectionNames)
+}
+
+type CandidatesSuite struct {
+	PRSuite
+}
+
+var _ = Suite(&CandidatesSuite{})
+
+func (s *CandidatesSuite) TestAddCandidateReturns201(c *C) {
+	recorder := s.PerformRequest("POST", "/elections/1/candidates", `{"name": "Test Candidate"}`)
+
+	c.Check(recorder.Code, Equals, 201)
 }
