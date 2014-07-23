@@ -26,12 +26,14 @@ func createTestDatabase() *gorp.DbMap {
 func Test(t *testing.T) { TestingT(t) }
 
 type PRSuite struct {
-	dbmap *gorp.DbMap
-	app   Application
+	dbmap     *gorp.DbMap
+	app       Application
+	createURL string
 }
 
 func (s *PRSuite) SetUpSuite(c *C) {
 	s.dbmap = createTestDatabase()
+	s.app = CreateApplication(s.dbmap)
 }
 
 func (s *PRSuite) SetUpTest(c *C) {
@@ -39,7 +41,6 @@ func (s *PRSuite) SetUpTest(c *C) {
 	if err != nil {
 		c.Error(err)
 	}
-	s.app = CreateApplication(s.dbmap)
 }
 
 func (s *PRSuite) TearDownSuite(c *C) {
@@ -56,17 +57,22 @@ func (s *PRSuite) PerformRequest(method string, relativePath string, body string
 	return w
 }
 
+func (s *PRSuite) TestAddReturns201(c *C) {
+	recorder := s.PerformRequest("POST", s.createURL, `{"name": "Test Name"}`)
+
+	c.Check(recorder.Code, Equals, 201)
+}
+
 type ElectionSuite struct {
 	PRSuite
 }
 
-var _ = Suite(&ElectionSuite{})
-
-func (s *ElectionSuite) TestAddElectionReturns201(c *C) {
-	recorder := s.PerformRequest("POST", "/elections", `{"name": "Test Election"}`)
-
-	c.Check(recorder.Code, Equals, 201)
+func (s *ElectionSuite) SetUpSuite(c *C) {
+	s.PRSuite.SetUpSuite(c)
+	s.createURL = "/elections"
 }
+
+var _ = Suite(&ElectionSuite{})
 
 func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
 	s.PerformRequest("POST", "/elections", `{"name": "Test Election"}`)
@@ -179,22 +185,23 @@ type CandidatesSuite struct {
 	PRSuite
 }
 
-var _ = Suite(&CandidatesSuite{})
+func (s *CandidatesSuite) SetUpTest(c *C) {
+	s.PRSuite.SetUpTest(c)
 
-func (s *CandidatesSuite) TestAddCandidateReturns404ForMissingElection(c *C) {
-	recorder := s.PerformRequest("POST", "/elections/1/candidates", `{"name": "Test Candidate"}`)
-
-	c.Check(recorder.Code, Equals, 404)
-}
-
-func (s *CandidatesSuite) TestAddCandidateReturns201(c *C) {
+	// Set up test election
 	election := Election{Name: "my test name"}
 	err := s.dbmap.Insert(&election)
 	if err != nil {
 		c.Error(err)
 	}
 
-	recorder := s.PerformRequest("POST", "/elections/1/candidates", `{"name": "Test Candidate"}`)
+	s.createURL = fmt.Sprintf("/elections/%d/candidates", election.Id)
+}
 
-	c.Check(recorder.Code, Equals, 201)
+var _ = Suite(&CandidatesSuite{})
+
+func (s *CandidatesSuite) TestAddCandidateReturns404ForMissingElection(c *C) {
+	recorder := s.PerformRequest("POST", "/elections/1234/candidates", `{"name": "Test Candidate"}`)
+
+	c.Check(recorder.Code, Equals, 404)
 }
