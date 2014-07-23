@@ -28,26 +28,33 @@ type Application struct {
 }
 
 func (app *Application) configureORM(dbmap *gorp.DbMap) {
+	log.Print("Configuring ORM...")
 	dbmap.AddTableWithName(Election{}, "elections").SetKeys(true, "Id").ColMap("Name").SetUnique(true)
 
 	err := dbmap.CreateTablesIfNotExists()
 	checkErr(err, "Create tables failed")
+	log.Print("Tables successfully created.")
 
 	app.electionDatabase = GorpElectionDB{dbmap}
+	log.Print("ORM configured.")
 }
 
 func (app *Application) configureRouting() {
+	log.Print("Configuring routing...")
 	router := mux.NewRouter()
 	router.HandleFunc("/elections", app.ListElections).Methods("GET")
 	router.HandleFunc("/elections", app.AddElection).Methods("POST")
 	router.HandleFunc("/elections/{id}", app.GetElection).Methods("GET")
 	app.router = router
+	log.Print("Routing configured.")
 }
 
 func CreateApplication(dbmap *gorp.DbMap) Application {
+	log.Print("Creating application...")
 	app := Application{}
 	app.configureORM(dbmap)
 	app.configureRouting()
+	log.Print("Application created.")
 	return app
 }
 
@@ -108,14 +115,17 @@ func (app Application) ListElections(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {
+	log.Print("Starting up...")
 	dbmap := initDb()
 	application := CreateApplication(dbmap)
 	muxchain.Chain("/", muxchainutil.DefaultLog, application.router)
 }
 
 func main() {
+	log.Print("Listening and serving on port 8123...")
 	err := http.ListenAndServe(":8123", muxchain.Default)
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Print("Exiting...")
 }
