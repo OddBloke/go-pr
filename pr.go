@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -19,7 +20,9 @@ var log lumber.Logger
 
 func handleUnexpectedError(err error, w http.ResponseWriter) bool {
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		debug.PrintStack()
+		log.Error(err.Error())
+		http.Error(w, "Server error", 500)
 		return true
 	}
 	return false
