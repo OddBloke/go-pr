@@ -29,6 +29,7 @@ type PRSuite struct {
 	dbmap     *gorp.DbMap
 	app       Application
 	createURL string
+	tableName string
 }
 
 func (s *PRSuite) SetUpSuite(c *C) {
@@ -63,6 +64,15 @@ func (s *PRSuite) TestAddReturns201(c *C) {
 	c.Check(recorder.Code, Equals, 201)
 }
 
+func (s *PRSuite) TestAddCreatesOneEntity(c *C) {
+	s.PerformRequest("POST", s.createURL, `{"name": "Test Name"}`)
+
+	query := fmt.Sprintf("SELECT count(*) FROM %s", s.tableName)
+	count, err := s.dbmap.SelectInt(query)
+	checkErr(err, "Getting count failed")
+	c.Assert(count, Equals, int64(1))
+}
+
 type ElectionSuite struct {
 	PRSuite
 }
@@ -70,17 +80,10 @@ type ElectionSuite struct {
 func (s *ElectionSuite) SetUpSuite(c *C) {
 	s.PRSuite.SetUpSuite(c)
 	s.createURL = "/elections"
+	s.tableName = "elections"
 }
 
 var _ = Suite(&ElectionSuite{})
-
-func (s *ElectionSuite) TestAddElectionCreatesOneElection(c *C) {
-	s.PerformRequest("POST", "/elections", `{"name": "Test Election"}`)
-
-	count, err := s.dbmap.SelectInt("select count(*) from elections")
-	checkErr(err, "Getting count failed")
-	c.Assert(count, Equals, int64(1))
-}
 
 func (s *ElectionSuite) TestAddElectionCreatesElectionWithCorrectName(c *C) {
 	s.PerformRequest("POST", "/elections", `{"name": "Test Election"}`)
@@ -196,6 +199,7 @@ func (s *CandidatesSuite) SetUpTest(c *C) {
 	}
 
 	s.createURL = fmt.Sprintf("/elections/%d/candidates", election.Id)
+	s.tableName = "candidates"
 }
 
 var _ = Suite(&CandidatesSuite{})

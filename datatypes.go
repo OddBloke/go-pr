@@ -8,3 +8,9 @@ type Election struct {
 func (e *Election) String() string {
 	return e.Name
 }
+
+type Candidate struct {
+	Id         int    `json:"id"`
+	Name       string `json:"name"`
+	ElectionId int    `json:"election_id"`
+}

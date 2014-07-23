@@ -6,6 +6,8 @@ type DB interface {
 	AddElection(e Election) error
 	GetElection(id int) (Election, error)
 	ListElections() ([]Election, error)
+
+	AddCandidate(c Candidate) error
 }
 
 var electionDatabase DB
@@ -29,4 +31,9 @@ func (db GorpDB) ListElections() ([]Election, error) {
 	var elections []Election
 	_, err := db.dbmap.Select(&elections, "SELECT * FROM elections")
 	return elections, err
+}
+
+func (db GorpDB) AddCandidate(c Candidate) error {
+	err := db.dbmap.Insert(&c)
+	return err
 }

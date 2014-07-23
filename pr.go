@@ -36,6 +36,7 @@ type Application struct {
 func (app *Application) configureORM(dbmap *gorp.DbMap) {
 	log.Info("Configuring ORM...")
 	dbmap.AddTableWithName(Election{}, "elections").SetKeys(true, "Id").ColMap("Name").SetUnique(true)
+	dbmap.AddTableWithName(Candidate{}, "candidates").SetKeys(true, "Id")
 
 	err := dbmap.CreateTablesIfNotExists()
 	checkErr(err, "Create tables failed")
@@ -136,11 +137,18 @@ func (app Application) AddCandidate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	_, err = app.database.GetElection(id)
+	election, err := app.database.GetElection(id)
 	if err == sql.ErrNoRows {
 		http.Error(w, "Not found", 404)
 		return
 	}
+	candidate := Candidate{}
+	err = json.NewDecoder(r.Body).Decode(&candidate)
+	if handleUnexpectedError(err, w) {
+		return
+	}
+	candidate.ElectionId = election.Id
+	err = app.database.AddCandidate(candidate)
 	w.WriteHeader(201)
 }
 
