@@ -9,12 +9,12 @@ import (
 	"strings"
 
 	"github.com/coopernurse/gorp"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/stephens2424/muxchain"
-	"github.com/stephens2424/muxchain/muxchainutil"
 	"github.com/jcelliott/lumber"
 )
 
+var handler http.Handler
 var log lumber.Logger
 
 func handleUnexpectedError(err error, w http.ResponseWriter) bool {
@@ -27,7 +27,7 @@ func handleUnexpectedError(err error, w http.ResponseWriter) bool {
 
 type Application struct {
 	electionDatabase ElectionDB
-	router           *mux.Router
+	handler          http.Handler
 }
 
 func (app *Application) configureORM(dbmap *gorp.DbMap) {
@@ -48,7 +48,7 @@ func (app *Application) configureRouting() {
 	router.HandleFunc("/elections", app.ListElections).Methods("GET")
 	router.HandleFunc("/elections", app.AddElection).Methods("POST")
 	router.HandleFunc("/elections/{id}", app.GetElection).Methods("GET")
-	app.router = router
+	app.handler = handlers.CombinedLoggingHandler(os.Stdout, router)
 	log.Info("Routing configured.")
 }
 
@@ -122,12 +122,12 @@ func init() {
 	log.Info("Starting up...")
 	dbmap := initDb()
 	application := CreateApplication(dbmap)
-	muxchain.Chain("/", muxchainutil.DefaultLog, application.router)
+	handler = application.handler
 }
 
 func main() {
 	log.Info("Listening and serving on port 8123...")
-	err := http.ListenAndServe(":8123", muxchain.Default)
+	err := http.ListenAndServe(":8123", handler)
 	if err != nil {
 		log.Fatal(err.Error())
 		os.Exit(1)

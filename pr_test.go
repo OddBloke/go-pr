@@ -53,7 +53,7 @@ func (s *ElectionSuite) PerformRequest(method string, relativePath string, body 
 	checkErr(err, "Request creation failed")
 
 	testApp := CreateApplication(s.dbmap)
-	testApp.router.ServeHTTP(w, r)
+	testApp.handler.ServeHTTP(w, r)
 	return w
 }
 
