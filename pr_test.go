@@ -74,18 +74,14 @@ func (s *PRSuite) TestAddCreatesOneEntity(c *C) {
 }
 
 func (s *PRSuite) TestAddCreatesEntityWithCorrectName(c *C) {
-	type nameHolder struct {
-		Name string
-	}
 	s.PerformRequest("POST", s.createURL, `{"name": "Test Name"}`)
 
-	var createdEntity nameHolder
 	query := fmt.Sprintf("select Name from %s", s.tableName)
-	err := s.dbmap.SelectOne(&createdEntity, query)
+	name, err := s.dbmap.SelectStr(query)
 	if err != nil {
 		c.Error(err)
 	}
-	c.Assert(createdEntity.Name, Matches, "Test Name")
+	c.Assert(name, Matches, "Test Name")
 }
 
 type ElectionSuite struct {
