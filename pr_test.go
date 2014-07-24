@@ -209,3 +209,14 @@ func (s *CandidatesSuite) TestAddCandidateReturns404ForMissingElection(c *C) {
 
 	c.Check(recorder.Code, Equals, 404)
 }
+
+func (s *CandidatesSuite) TestAddCandidateCreatesCandidateWithCorrectName(c *C) {
+	s.PerformRequest("POST", s.createURL, `{"name": "Test Candidate"}`)
+
+	var createdCandidate Candidate
+	err := s.dbmap.SelectOne(&createdCandidate, "select * from candidates")
+	if err != nil {
+		c.Error(err)
+	}
+	c.Assert(createdCandidate.Name, Matches, "Test Candidate")
+}
