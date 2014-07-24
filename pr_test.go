@@ -96,6 +96,19 @@ func (s *PRSuite) TestAddRejectsZeroLengthName(c *C) {
 	c.Check(count, Equals, int64(0))
 }
 
+func (s *PRSuite) TestAddRejectsDuplicateNames(c *C) {
+	s.PerformRequest("POST", s.createURL, `{"name": "Duplicate"}`)
+	recorder := s.PerformRequest("POST", s.createURL, `{"name": "Duplicate"}`)
+
+	c.Check(recorder.Code, Equals, 400)
+	c.Check(recorder.Body.String(), Matches, "Name taken.\n?")
+
+	query := fmt.Sprintf("SELECT count(*) FROM %s", s.tableName)
+	count, err := s.dbmap.SelectInt(query)
+	checkErr(err, "Getting count failed")
+	c.Check(count, Equals, int64(1))
+}
+
 type ElectionSuite struct {
 	PRSuite
 }
@@ -107,18 +120,6 @@ func (s *ElectionSuite) SetUpSuite(c *C) {
 }
 
 var _ = Suite(&ElectionSuite{})
-
-func (s *ElectionSuite) TestAddElectionRejectsDuplicateNames(c *C) {
-	s.PerformRequest("POST", "/elections", `{"name": "Duplicate"}`)
-	recorder := s.PerformRequest("POST", "/elections", `{"name": "Duplicate"}`)
-
-	c.Check(recorder.Code, Equals, 400)
-	c.Check(recorder.Body.String(), Matches, "Name taken.\n?")
-
-	count, err := s.dbmap.SelectInt("select count(*) from elections")
-	checkErr(err, "Getting count failed")
-	c.Check(count, Equals, int64(1))
-}
 
 func (s *ElectionSuite) TestGetElectionReturns200(c *C) {
 	election := Election{Name: "my test name"}
@@ -189,16 +190,20 @@ type CandidatesSuite struct {
 	PRSuite
 }
 
-func (s *CandidatesSuite) SetUpTest(c *C) {
-	s.PRSuite.SetUpTest(c)
-
+func (s *CandidatesSuite) CreateElection(c *C, name string) Election {
 	// Set up test election
-	election := Election{Name: "my test name"}
+	election := Election{Name: name}
 	err := s.dbmap.Insert(&election)
 	if err != nil {
 		c.Error(err)
 	}
+	return election
+}
 
+func (s *CandidatesSuite) SetUpTest(c *C) {
+	s.PRSuite.SetUpTest(c)
+
+	election := s.CreateElection(c, "my test name")
 	s.createURL = fmt.Sprintf("/elections/%d/candidates", election.Id)
 	s.tableName = "candidates"
 }
@@ -209,4 +214,14 @@ func (s *CandidatesSuite) TestAddCandidateReturns404ForMissingElection(c *C) {
 	recorder := s.PerformRequest("POST", "/elections/1234/candidates", `{"name": "Test Candidate"}`)
 
 	c.Check(recorder.Code, Equals, 404)
+}
+
+func (s *CandidatesSuite) TestAddCandidateDoesNotRejectSameNameForDifferentElections(c *C) {
+	payload := `{"name": "Test Candidate"}`
+	recorder := s.PerformRequest("POST", s.createURL, payload)
+	c.Check(recorder.Code, Equals, 201)
+
+	secondElection := s.CreateElection(c, "Second Election")
+	recorder = s.PerformRequest("POST", fmt.Sprintf("/elections/%d/candidates", secondElection.Id), payload)
+	c.Check(recorder.Code, Equals, 201)
 }

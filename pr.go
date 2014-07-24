@@ -36,7 +36,7 @@ type Application struct {
 func (app *Application) configureORM(dbmap *gorp.DbMap) {
 	log.Info("Configuring ORM...")
 	dbmap.AddTableWithName(Election{}, "elections").SetKeys(true, "Id").ColMap("Name").SetUnique(true)
-	dbmap.AddTableWithName(Candidate{}, "candidates").SetKeys(true, "Id")
+	dbmap.AddTableWithName(Candidate{}, "candidates").SetKeys(true, "Id").SetUniqueTogether("Name", "ElectionId")
 
 	err := dbmap.CreateTablesIfNotExists()
 	checkErr(err, "Create tables failed")
@@ -153,6 +153,14 @@ func (app Application) AddCandidate(w http.ResponseWriter, r *http.Request) {
 	}
 	candidate.ElectionId = election.Id
 	err = app.database.Add(&candidate)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			http.Error(w, "Name taken.", 400)
+			return
+		}
+		handleUnexpectedError(err, w)
+		return
+	}
 	w.WriteHeader(201)
 }
 
