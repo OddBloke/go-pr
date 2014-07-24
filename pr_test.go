@@ -84,6 +84,18 @@ func (s *PRSuite) TestAddCreatesEntityWithCorrectName(c *C) {
 	c.Assert(name, Matches, "Test Name")
 }
 
+func (s *PRSuite) TestAddRejectsZeroLengthName(c *C) {
+	recorder := s.PerformRequest("POST", s.createURL, `{"name": ""}`)
+
+	c.Check(recorder.Code, Equals, 400)
+	c.Check(recorder.Body.String(), Matches, "Empty name forbidden.\n?")
+
+	query := fmt.Sprintf("SELECT count(*) FROM %s", s.tableName)
+	count, err := s.dbmap.SelectInt(query)
+	checkErr(err, "Getting count failed")
+	c.Check(count, Equals, int64(0))
+}
+
 type ElectionSuite struct {
 	PRSuite
 }
@@ -95,17 +107,6 @@ func (s *ElectionSuite) SetUpSuite(c *C) {
 }
 
 var _ = Suite(&ElectionSuite{})
-
-func (s *ElectionSuite) TestAddElectionRejectsZeroLengthName(c *C) {
-	recorder := s.PerformRequest("POST", "/elections", `{"name": ""}`)
-
-	c.Check(recorder.Code, Equals, 400)
-	c.Check(recorder.Body.String(), Matches, "Empty name forbidden.\n?")
-
-	count, err := s.dbmap.SelectInt("select count(*) from elections")
-	checkErr(err, "Getting count failed")
-	c.Check(count, Equals, int64(0))
-}
 
 func (s *ElectionSuite) TestAddElectionRejectsDuplicateNames(c *C) {
 	s.PerformRequest("POST", "/elections", `{"name": "Duplicate"}`)

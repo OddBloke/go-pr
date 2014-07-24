@@ -147,6 +147,10 @@ func (app Application) AddCandidate(w http.ResponseWriter, r *http.Request) {
 	if handleUnexpectedError(err, w) {
 		return
 	}
+	if len(candidate.Name) == 0 {
+		http.Error(w, "Empty name forbidden.", 400)
+		return
+	}
 	candidate.ElectionId = election.Id
 	err = app.database.Add(&candidate)
 	w.WriteHeader(201)
