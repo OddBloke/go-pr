@@ -73,6 +73,21 @@ func (s *PRSuite) TestAddCreatesOneEntity(c *C) {
 	c.Assert(count, Equals, int64(1))
 }
 
+func (s *PRSuite) TestAddCreatesEntityWithCorrectName(c *C) {
+	type nameHolder struct {
+		Name string
+	}
+	s.PerformRequest("POST", s.createURL, `{"name": "Test Name"}`)
+
+	var createdEntity nameHolder
+	query := fmt.Sprintf("select Name from %s", s.tableName)
+	err := s.dbmap.SelectOne(&createdEntity, query)
+	if err != nil {
+		c.Error(err)
+	}
+	c.Assert(createdEntity.Name, Matches, "Test Name")
+}
+
 type ElectionSuite struct {
 	PRSuite
 }
@@ -84,17 +99,6 @@ func (s *ElectionSuite) SetUpSuite(c *C) {
 }
 
 var _ = Suite(&ElectionSuite{})
-
-func (s *ElectionSuite) TestAddElectionCreatesElectionWithCorrectName(c *C) {
-	s.PerformRequest("POST", "/elections", `{"name": "Test Election"}`)
-
-	var createdElection Election
-	err := s.dbmap.SelectOne(&createdElection, "select * from elections")
-	if err != nil {
-		c.Error(err)
-	}
-	c.Assert(createdElection.Name, Matches, "Test Election")
-}
 
 func (s *ElectionSuite) TestAddElectionRejectsZeroLengthName(c *C) {
 	recorder := s.PerformRequest("POST", "/elections", `{"name": ""}`)
@@ -208,15 +212,4 @@ func (s *CandidatesSuite) TestAddCandidateReturns404ForMissingElection(c *C) {
 	recorder := s.PerformRequest("POST", "/elections/1234/candidates", `{"name": "Test Candidate"}`)
 
 	c.Check(recorder.Code, Equals, 404)
-}
-
-func (s *CandidatesSuite) TestAddCandidateCreatesCandidateWithCorrectName(c *C) {
-	s.PerformRequest("POST", s.createURL, `{"name": "Test Candidate"}`)
-
-	var createdCandidate Candidate
-	err := s.dbmap.SelectOne(&createdCandidate, "select * from candidates")
-	if err != nil {
-		c.Error(err)
-	}
-	c.Assert(createdCandidate.Name, Matches, "Test Candidate")
 }
