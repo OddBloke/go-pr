@@ -26,10 +26,11 @@ func createTestDatabase() *gorp.DbMap {
 func Test(t *testing.T) { TestingT(t) }
 
 type PRSuite struct {
-	dbmap     *gorp.DbMap
-	app       Application
-	createURL string
-	tableName string
+	dbmap            *gorp.DbMap
+	app              Application
+	createURL        string
+	fetchOneTemplate string
+	tableName        string
 }
 
 func (s *PRSuite) SetUpSuite(c *C) {
@@ -116,32 +117,40 @@ type ElectionSuite struct {
 func (s *ElectionSuite) SetUpSuite(c *C) {
 	s.PRSuite.SetUpSuite(c)
 	s.createURL = "/elections"
+	s.fetchOneTemplate = "/elections/%d"
 	s.tableName = "elections"
+}
+
+func (s *ElectionSuite) CreateEntity(c *C, name string) int {
+	election := Election{Name: "my test name"}
+	err := s.dbmap.Insert(&election)
+	if err != nil {
+		c.Error(err)
+	}
+	return election.Id
 }
 
 var _ = Suite(&ElectionSuite{})
 
 func (s *ElectionSuite) TestGetElectionReturns200(c *C) {
-	election := Election{Name: "my test name"}
-	s.dbmap.Insert(&election)
+	entityId := s.CreateEntity(c, "my test name")
 
-	recorder := s.PerformRequest("GET", fmt.Sprintf("/elections/%d", election.Id), "")
+	recorder := s.PerformRequest("GET", fmt.Sprintf(s.fetchOneTemplate, entityId), "")
 
 	c.Check(recorder.Code, Equals, 200)
 }
 
 func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
-	election := Election{Name: "my test name"}
-	s.dbmap.Insert(&election)
+	entityId := s.CreateEntity(c, "my test name")
 
-	recorder := s.PerformRequest("GET", fmt.Sprintf("/elections/%d", election.Id), "")
+	recorder := s.PerformRequest("GET", fmt.Sprintf(s.fetchOneTemplate, entityId), "")
 	returnedElection := Election{}
 	json.Unmarshal(recorder.Body.Bytes(), &returnedElection)
 	c.Assert(returnedElection.Name, Matches, "my test name")
 }
 
 func (s *ElectionSuite) TestGetElection404sForUnknownElection(c *C) {
-	recorder := s.PerformRequest("GET", "/elections/1", "")
+	recorder := s.PerformRequest("GET", fmt.Sprintf(s.fetchOneTemplate, 1234), "")
 
 	c.Check(recorder.Code, Equals, 404)
 }
