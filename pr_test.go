@@ -49,24 +49,26 @@ func (s *PRSuite) TearDownSuite(c *C) {
 	s.dbmap.Db.Close()
 }
 
-func (s *PRSuite) PerformRequest(method string, relativePath string, body string) *httptest.ResponseRecorder {
+func (s *PRSuite) PerformRequest(c *C, method string, relativePath string, body string) *httptest.ResponseRecorder {
 	path := fmt.Sprintf("http://test.example.com%s", relativePath)
 	w := httptest.NewRecorder()
 	r, err := http.NewRequest(method, path, strings.NewReader(body))
-	checkErr(err, "Request creation failed")
+	if err != nil {
+		c.Error(err)
+	}
 
 	s.app.handler.ServeHTTP(w, r)
 	return w
 }
 
 func (s *PRSuite) TestAddReturns201(c *C) {
-	recorder := s.PerformRequest("POST", s.createURL, `{"name": "Test Name"}`)
+	recorder := s.PerformRequest(c, "POST", s.createURL, `{"name": "Test Name"}`)
 
 	c.Check(recorder.Code, Equals, 201)
 }
 
 func (s *PRSuite) TestAddCreatesOneEntity(c *C) {
-	s.PerformRequest("POST", s.createURL, `{"name": "Test Name"}`)
+	s.PerformRequest(c, "POST", s.createURL, `{"name": "Test Name"}`)
 
 	query := fmt.Sprintf("SELECT count(*) FROM %s", s.tableName)
 	count, err := s.dbmap.SelectInt(query)
@@ -75,7 +77,7 @@ func (s *PRSuite) TestAddCreatesOneEntity(c *C) {
 }
 
 func (s *PRSuite) TestAddCreatesEntityWithCorrectName(c *C) {
-	s.PerformRequest("POST", s.createURL, `{"name": "Test Name"}`)
+	s.PerformRequest(c, "POST", s.createURL, `{"name": "Test Name"}`)
 
 	query := fmt.Sprintf("select Name from %s", s.tableName)
 	name, err := s.dbmap.SelectStr(query)
@@ -86,7 +88,7 @@ func (s *PRSuite) TestAddCreatesEntityWithCorrectName(c *C) {
 }
 
 func (s *PRSuite) TestAddRejectsZeroLengthName(c *C) {
-	recorder := s.PerformRequest("POST", s.createURL, `{"name": ""}`)
+	recorder := s.PerformRequest(c, "POST", s.createURL, `{"name": ""}`)
 
 	c.Check(recorder.Code, Equals, 400)
 	c.Check(recorder.Body.String(), Matches, "Empty name forbidden.\n?")
@@ -98,8 +100,8 @@ func (s *PRSuite) TestAddRejectsZeroLengthName(c *C) {
 }
 
 func (s *PRSuite) TestAddRejectsDuplicateNames(c *C) {
-	s.PerformRequest("POST", s.createURL, `{"name": "Duplicate"}`)
-	recorder := s.PerformRequest("POST", s.createURL, `{"name": "Duplicate"}`)
+	s.PerformRequest(c, "POST", s.createURL, `{"name": "Duplicate"}`)
+	recorder := s.PerformRequest(c, "POST", s.createURL, `{"name": "Duplicate"}`)
 
 	c.Check(recorder.Code, Equals, 400)
 	c.Check(recorder.Body.String(), Matches, "Name taken.\n?")
@@ -135,7 +137,7 @@ var _ = Suite(&ElectionSuite{})
 func (s *ElectionSuite) TestGetElectionReturns200(c *C) {
 	entityId := s.CreateEntity(c, "my test name")
 
-	recorder := s.PerformRequest("GET", fmt.Sprintf(s.fetchOneTemplate, entityId), "")
+	recorder := s.PerformRequest(c, "GET", fmt.Sprintf(s.fetchOneTemplate, entityId), "")
 
 	c.Check(recorder.Code, Equals, 200)
 }
@@ -143,20 +145,20 @@ func (s *ElectionSuite) TestGetElectionReturns200(c *C) {
 func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
 	entityId := s.CreateEntity(c, "my test name")
 
-	recorder := s.PerformRequest("GET", fmt.Sprintf(s.fetchOneTemplate, entityId), "")
+	recorder := s.PerformRequest(c, "GET", fmt.Sprintf(s.fetchOneTemplate, entityId), "")
 	returnedElection := Election{}
 	json.Unmarshal(recorder.Body.Bytes(), &returnedElection)
 	c.Assert(returnedElection.Name, Matches, "my test name")
 }
 
 func (s *ElectionSuite) TestGetElection404sForUnknownElection(c *C) {
-	recorder := s.PerformRequest("GET", fmt.Sprintf(s.fetchOneTemplate, 1234), "")
+	recorder := s.PerformRequest(c, "GET", fmt.Sprintf(s.fetchOneTemplate, 1234), "")
 
 	c.Check(recorder.Code, Equals, 404)
 }
 
 func (s *ElectionSuite) TestListElectionsReturnsEmptyList(c *C) {
-	recorder := s.PerformRequest("GET", "/elections", "")
+	recorder := s.PerformRequest(c, "GET", "/elections", "")
 
 	c.Check(recorder.Code, Equals, 200)
 	c.Check(recorder.Body.String(), Equals, "[]")
@@ -168,7 +170,7 @@ func (s *ElectionSuite) TestListElectionsReturnsListOfCorrectLength(c *C) {
 	third_election := Election{Name: "my third name"}
 	s.dbmap.Insert(&election, &other_election, &third_election)
 
-	recorder := s.PerformRequest("GET", "/elections", "")
+	recorder := s.PerformRequest(c, "GET", "/elections", "")
 
 	var electionList []Election
 	json.Unmarshal(recorder.Body.Bytes(), &electionList)
@@ -180,7 +182,7 @@ func (s *ElectionSuite) TestListElectionReturnsExistingElections(c *C) {
 	other_election := Election{Name: "my other name"}
 	s.dbmap.Insert(&election, &other_election)
 
-	recorder := s.PerformRequest("GET", "/elections", "")
+	recorder := s.PerformRequest(c, "GET", "/elections", "")
 
 	expectedElectionNames := map[string]int{
 		"my test name":  0,
@@ -220,17 +222,17 @@ func (s *CandidatesSuite) SetUpTest(c *C) {
 var _ = Suite(&CandidatesSuite{})
 
 func (s *CandidatesSuite) TestAddCandidateReturns404ForMissingElection(c *C) {
-	recorder := s.PerformRequest("POST", "/elections/1234/candidates", `{"name": "Test Candidate"}`)
+	recorder := s.PerformRequest(c, "POST", "/elections/1234/candidates", `{"name": "Test Candidate"}`)
 
 	c.Check(recorder.Code, Equals, 404)
 }
 
 func (s *CandidatesSuite) TestAddCandidateDoesNotRejectSameNameForDifferentElections(c *C) {
 	payload := `{"name": "Test Candidate"}`
-	recorder := s.PerformRequest("POST", s.createURL, payload)
+	recorder := s.PerformRequest(c, "POST", s.createURL, payload)
 	c.Check(recorder.Code, Equals, 201)
 
 	secondElection := s.CreateElection(c, "Second Election")
-	recorder = s.PerformRequest("POST", fmt.Sprintf("/elections/%d/candidates", secondElection.Id), payload)
+	recorder = s.PerformRequest(c, "POST", fmt.Sprintf("/elections/%d/candidates", secondElection.Id), payload)
 	c.Check(recorder.Code, Equals, 201)
 }
