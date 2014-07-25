@@ -31,6 +31,7 @@ type PRSuite struct {
 	createURL        string
 	fetchOneTemplate string
 	tableName        string
+	CreateEntity     func(c *C, name string) int
 }
 
 func (s *PRSuite) SetUpSuite(c *C) {
@@ -121,15 +122,14 @@ func (s *ElectionSuite) SetUpSuite(c *C) {
 	s.createURL = "/elections"
 	s.fetchOneTemplate = "/elections/%d"
 	s.tableName = "elections"
-}
-
-func (s *ElectionSuite) CreateEntity(c *C, name string) int {
-	election := Election{Name: "my test name"}
-	err := s.dbmap.Insert(&election)
-	if err != nil {
-		c.Error(err)
+	s.CreateEntity = func(c *C, name string) int {
+		election := Election{Name: name}
+		err := s.dbmap.Insert(&election)
+		if err != nil {
+			c.Error(err)
+		}
+		return election.Id
 	}
-	return election.Id
 }
 
 var _ = Suite(&ElectionSuite{})
