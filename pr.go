@@ -55,6 +55,7 @@ func (app *Application) configureRouting() {
 	router.HandleFunc("/elections", app.AddElection).Methods("POST")
 	router.HandleFunc("/elections/{id}", app.GetElection).Methods("GET")
 	router.HandleFunc("/elections/{election_id}/candidates", app.AddCandidate).Methods("POST")
+	router.HandleFunc("/elections/{election_id}/candidates/{id}", app.GetCandidate).Methods("GET")
 	app.handler = handlers.CombinedLoggingHandler(os.Stdout, router)
 	log.Info("Routing configured.")
 }
@@ -157,6 +158,9 @@ func (app Application) AddCandidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(201)
+}
+
+func (app Application) GetCandidate(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {

@@ -113,6 +113,14 @@ func (s *PRSuite) TestAddRejectsDuplicateNames(c *C) {
 	c.Check(count, Equals, int64(1))
 }
 
+func (s *PRSuite) TestGetReturns200(c *C) {
+	entityId := s.CreateEntity(c, "my test name")
+
+	recorder := s.PerformRequest(c, "GET", fmt.Sprintf(s.fetchOneTemplate, entityId), "")
+
+	c.Check(recorder.Code, Equals, 200)
+}
+
 type ElectionSuite struct {
 	PRSuite
 }
@@ -133,14 +141,6 @@ func (s *ElectionSuite) SetUpSuite(c *C) {
 }
 
 var _ = Suite(&ElectionSuite{})
-
-func (s *ElectionSuite) TestGetElectionReturns200(c *C) {
-	entityId := s.CreateEntity(c, "my test name")
-
-	recorder := s.PerformRequest(c, "GET", fmt.Sprintf(s.fetchOneTemplate, entityId), "")
-
-	c.Check(recorder.Code, Equals, 200)
-}
 
 func (s *ElectionSuite) TestGetElectionReturnsElectionName(c *C) {
 	entityId := s.CreateEntity(c, "my test name")
@@ -199,6 +199,19 @@ func (s *ElectionSuite) TestListElectionReturnsExistingElections(c *C) {
 
 type CandidatesSuite struct {
 	PRSuite
+	electionId int
+}
+
+func (s *CandidatesSuite) SetUpSuite(c *C) {
+	s.PRSuite.SetUpSuite(c)
+	s.CreateEntity = func(c *C, name string) int {
+		candidate := Candidate{Name: name, ElectionId: s.electionId}
+		err := s.dbmap.Insert(&candidate)
+		if err != nil {
+			c.Error(err)
+		}
+		return candidate.Id
+	}
 }
 
 func (s *CandidatesSuite) CreateElection(c *C, name string) Election {
@@ -215,7 +228,9 @@ func (s *CandidatesSuite) SetUpTest(c *C) {
 	s.PRSuite.SetUpTest(c)
 
 	election := s.CreateElection(c, "my test name")
+	s.electionId = election.Id
 	s.createURL = fmt.Sprintf("/elections/%d/candidates", election.Id)
+	s.fetchOneTemplate = fmt.Sprintf("/elections/%d/candidates/%%d", election.Id)
 	s.tableName = "candidates"
 }
 
