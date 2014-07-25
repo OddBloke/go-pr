@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"os"
 	"runtime/debug"
@@ -66,23 +68,31 @@ func CreateApplication(dbmap *gorp.DbMap) Application {
 	return app
 }
 
-func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
-	election := Election{}
-	err := json.NewDecoder(r.Body).Decode(&election)
+func (app Application) addEntity(w http.ResponseWriter, body io.Reader, v NamedEntity) error {
+	err := json.NewDecoder(body).Decode(v)
 	if handleUnexpectedError(err, w) {
-		return
+		return err
 	}
-	if len(election.Name) == 0 {
-		http.Error(w, "Empty name forbidden.", 400)
-		return
+	if len(v.GetName()) == 0 {
+		errorString := "Empty name forbidden."
+		http.Error(w, errorString, 400)
+		return errors.New(errorString)
 	}
-	err = app.database.Add(&election)
+	err = app.database.Add(v)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			http.Error(w, "Name taken.", 400)
-			return
+			return err
 		}
 		handleUnexpectedError(err, w)
+		return err
+	}
+	return nil
+}
+
+func (app Application) AddElection(w http.ResponseWriter, r *http.Request) {
+	election := Election{}
+	if app.addEntity(w, r.Body, &election) != nil {
 		return
 	}
 	w.WriteHeader(201)
@@ -142,23 +152,8 @@ func (app Application) AddCandidate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Not found", 404)
 		return
 	}
-	candidate := Candidate{}
-	err = json.NewDecoder(r.Body).Decode(&candidate)
-	if handleUnexpectedError(err, w) {
-		return
-	}
-	if len(candidate.Name) == 0 {
-		http.Error(w, "Empty name forbidden.", 400)
-		return
-	}
-	candidate.ElectionId = election.Id
-	err = app.database.Add(&candidate)
-	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			http.Error(w, "Name taken.", 400)
-			return
-		}
-		handleUnexpectedError(err, w)
+	candidate := Candidate{ElectionId: election.Id}
+	if app.addEntity(w, r.Body, &candidate) != nil {
 		return
 	}
 	w.WriteHeader(201)
